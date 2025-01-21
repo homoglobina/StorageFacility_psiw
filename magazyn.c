@@ -50,12 +50,12 @@ void kurier_process(Magazyn *magazyn, char *shared_mem) {
     while (1) {
 
         // problemy w magazynach
-        printf("Kurier %d czeka na swoja kolej\n", pid);
+        // printf("Kurier %d czeka na swoja kolej\n", pid);
         sem_wait(sem_iteration);  // Lock shared memory access
        
 
        // problemy pomiedzy magazymami
-        printf("Kurier %d czeka na zamowienie\n", pid);
+        // printf("Kurier %d czeka na zamowienie\n", pid);
         sem_wait(sem_d);
 
 
@@ -67,7 +67,9 @@ void kurier_process(Magazyn *magazyn, char *shared_mem) {
 
         // zamowienie 000 zabija wszystkie procesy magazynu
         if (order[0] == 0 && order[1] == 0 && order[2] == 0) {
-            printf("Dyspozytornia zakończyła pracę. Kurier %d się wyłącza.\n", pid);
+            printf("Dyspozytornia zakończyła pracę. Kurierzy się wyłączaja.\n");
+            printf("Stan magazynu: A=%d, B=%d, C=%d\n", magazyn->A, magazyn->B, magazyn->C);
+            printf("Zarobione GLD: %d\n", magazyn->earnings);
             sem_post(sem_iteration);  
             kill(0, SIGTERM);  
             exit(0);
@@ -75,10 +77,12 @@ void kurier_process(Magazyn *magazyn, char *shared_mem) {
 
         if (magazyn->A >= order[0] && magazyn->B >= order[1] && magazyn->C >= order[2]) {
             int cost = order[0] * magazyn->cost_A + order[1] * magazyn->cost_B + order[2] * magazyn->cost_C;
+            printf("Kurier %d dostarcza zamowienie za %d GLD\n", pid, cost);
             magazyn->A -= order[0];
             magazyn->B -= order[1];
             magazyn->C -= order[2];
             magazyn->earnings += cost;
+            printf("Kasa: %d\n", magazyn->earnings);
             
             order[0] = cost;
             memcpy(shared_mem, order, sizeof(int) * 3);
@@ -123,6 +127,7 @@ int main(int argc, char *argv[]) {
     }
     fscanf(file, "%d %d %d %d %d %d", &magazyn->A, &magazyn->B, &magazyn->C, &magazyn->cost_A, &magazyn->cost_B, &magazyn->cost_C);
     fclose(file);
+    magazyn->earnings = 0;
 
     // pamiec wspoldzielona dla magazynu
     char *shared_mem = attach_memory_block(argv[2], BLOCK_SIZE);

@@ -11,7 +11,7 @@
 int main(int argc, char *argv[]) {
 
     if (argc != 6) {
-        printf("Niepoprawna liczba argumentow\n"); /
+        printf("Niepoprawna liczba argumentow\n"); 
         printf("Usage %s <klucz> <liczba zamowien> <max_A_per_zam> <max_B_per_zam> <max_C_per_zam>\n", argv[0]);
         return 1;
     }
@@ -65,11 +65,13 @@ int main(int argc, char *argv[]) {
     printf("Dyspozytornia przygotowuje zamowienia\n");
 
     for (int i = 0; i < max_orders; i++) {
+        
         printf("Czekamy na sygnal magazynowy %d\n", i);
         sem_wait(sem_m);  // czeka na sygnal magazynowy
+        
+        memcpy(arr, block, sizeof(int) * 3); 
         printf("Dostarczono sygnal magazynowy %d\n", i);
-        
-        
+        printf("dodoaje do GLD = %d : %d\n",GLD, arr[0]);
         GLD += arr[0];
 
         arr[0] = rand() % max_A + 1;
