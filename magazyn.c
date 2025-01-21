@@ -100,15 +100,8 @@ int main(int argc, char *argv[]) {
         perror("shm_open");
         return 1;
     }
-
+    
     ftruncate(shm_fd, sizeof(Magazyn));  // Set size of shared memory
-
-    char *block = attach_memory_block(key, BLOCK_SIZE);
-    if (block == NULL) {
-        perror("attach_memory_block");
-        return 1;
-    }
-
 
     Magazyn *magazyn = mmap(NULL, sizeof(Magazyn), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (magazyn == MAP_FAILED) {
