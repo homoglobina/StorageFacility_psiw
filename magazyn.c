@@ -65,6 +65,17 @@ void kurier_process(Magazyn *magazyn, char *shared_mem) {
         memcpy(order, shared_mem, sizeof(int) * 3);
         printf("%d W magazynie znajduja sie : %d A %d B %d C\n", pid, magazyn->A, magazyn->B, magazyn->C);  
         printf("Kurier %d otrzymal zamowienie: %d %d %d\n", pid, order[0], order[1], order[2]);
+        
+
+        // zamowienie 000 zabija wszystkie procesy magazynu
+        if (order[0] == 0 && order[1] == 0 && order[2] == 0) {
+            printf("Dyspozytornia zakończyła pracę. Kurier %d się wyłącza.\n", pid);
+            sem_post(sem_iteration);  
+            kill(0, SIGTERM);  
+            exit(0);
+        }
+
+
 
         if (magazyn->A >= order[0] && magazyn->B >= order[1] && magazyn->C >= order[2]) {
             int cost = order[0] * magazyn->cost_A + order[1] * magazyn->cost_B + order[2] * magazyn->cost_C;

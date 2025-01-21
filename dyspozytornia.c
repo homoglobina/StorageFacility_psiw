@@ -85,6 +85,14 @@ int main(int argc, char *argv[]) {
 
     }
 
+
+    // dystpozytornia konczy prace 
+    int exit_signal[3] = {0, 0, 0};
+    memcpy(block, exit_signal, sizeof(int) * 3);
+    sem_post(sem_d);  
+
+
+
     sem_close(sem_d);
     sem_close(sem_m);
 
