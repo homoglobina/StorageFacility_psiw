@@ -1,14 +1,19 @@
+#define _POSIX_C_SOURCE 200809L
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/stat.h>   
+#include <sys/mman.h>   
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
 #include <semaphore.h>
 #include "shared_memory.h"
 
+
 #define KURIER_COUNT 3
+#define SHM_NAME "/shm_magazyn"  // Shared memory name for Magazyn struct
 
 typedef struct {
     int A;
@@ -21,16 +26,16 @@ typedef struct {
 } Magazyn;
 
 void kurier_process(Magazyn *magazyn, char *shared_mem) {
+    int pid = getpid() % 3;
+
+    // printf("Magazyn %d przed odbiorem zamowienia: %d %d %d\n", pid, magazyn->A, magazyn->B, magazyn->C);
+    
     sem_t *sem_m = sem_open(SEM_M_NAME, 0);
     if (sem_m == SEM_FAILED) {
-        perror("sem_open/sem_D");
+        perror("sem_open/sem_m");
         exit(1);
     }
     
-    printf("Kurier %d gotowy, zwalniam magazynowy semafor\n", getpid());
-    sem_post(sem_m);
-    
-    // int pid = getpid();
 
     sem_t *sem_d = sem_open(SEM_D_NAME, 0);
     if (sem_d == SEM_FAILED) {
@@ -38,16 +43,29 @@ void kurier_process(Magazyn *magazyn, char *shared_mem) {
         exit(1);
     }
 
+    sem_t *sem_iteration = sem_open("/sem_iteration", 1);
+    if (sem_iteration == SEM_FAILED) {
+        perror("sem_open/sem_iteration");
+        exit(1);
+    }
+    // int i = 0;
+
     while (1) {
+
+        // problemy w magazynach
+        // printf("Kurier %d czeka na swoja kolej\n", pid);
+        sem_wait(sem_iteration);  // Lock shared memory access
+       
+
+       // problemy pomiedzy magazymami
+        // printf("Kurier %d czeka na zamowienie\n", pid);
         sem_wait(sem_d);
+
+
         int order[3];
         memcpy(order, shared_mem, sizeof(int) * 3);
-        printf("Kurier %d otrzymal zamowienie: %d %d %d\n", getpid() ,order[0], order[1], order[2]);
-        printf("%d W magazynie znajduja sie : %d A %d B %d C\n",getpid(), magazyn->A, magazyn->B, magazyn->C);  
-
-
-
-
+        printf("%d W magazynie znajduja sie : %d A %d B %d C\n", pid, magazyn->A, magazyn->B, magazyn->C);  
+        printf("Kurier %d otrzymal zamowienie: %d %d %d\n", pid, order[0], order[1], order[2]);
 
         if (magazyn->A >= order[0] && magazyn->B >= order[1] && magazyn->C >= order[2]) {
             int cost = order[0] * magazyn->cost_A + order[1] * magazyn->cost_B + order[2] * magazyn->cost_C;
@@ -58,11 +76,15 @@ void kurier_process(Magazyn *magazyn, char *shared_mem) {
             
             order[0] = cost;
             memcpy(shared_mem, order, sizeof(int) * 3);
-            sem_post(sem_d);
+            sem_post(sem_m);
         } else {
-            printf("Brak surowcow, kurier %d sie wylacza.\n", getpid());
+            printf("Brak surowcow, kurier %d sie wylacza.\n", pid);
+            sem_post(sem_iteration);  // Release before exiting
+            sem_post(sem_m);
             exit(0);
         }
+
+        sem_post(sem_iteration);  // Unlock access
     }
 }
 
@@ -72,24 +94,54 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    Magazyn magazyn = {0};
+    // Open shared memory for Magazyn struct
+    int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
+    if (shm_fd == -1) {
+        perror("shm_open");
+        return 1;
+    }
+
+    ftruncate(shm_fd, sizeof(Magazyn));  // Set size of shared memory
+
+    char *block = attach_memory_block(key, BLOCK_SIZE);
+    if (block == NULL) {
+        perror("attach_memory_block");
+        return 1;
+    }
+
+
+    Magazyn *magazyn = mmap(NULL, sizeof(Magazyn), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+    if (magazyn == MAP_FAILED) {
+        perror("mmap");
+        return 1;
+    }
+
+    // Initialize magazyn from config file
     FILE *file = fopen(argv[1], "r");
     if (!file) {
         perror("fopen");
         return 1;
     }
-    fscanf(file, "%d %d %d %d %d %d", &magazyn.A, &magazyn.B, &magazyn.C, &magazyn.cost_A, &magazyn.cost_B, &magazyn.cost_C);
+    fscanf(file, "%d %d %d %d %d %d", &magazyn->A, &magazyn->B, &magazyn->C, &magazyn->cost_A, &magazyn->cost_B, &magazyn->cost_C);
     fclose(file);
 
+    // Attach shared memory for orders
     char *shared_mem = attach_memory_block(argv[2], BLOCK_SIZE);
     if (!shared_mem) {
         perror("attach_memory_block");
         return 1;
     }
 
+    sem_unlink("/sem_iteration");  // Usunięcie starego semafora, jeśli istnieje
+    sem_t *sem_iteration = sem_open("/sem_iteration", O_CREAT | O_EXCL, 0666, 1);
+    if (sem_iteration == SEM_FAILED) {
+        perror("sem_open/sem_iteration");
+        return 1;
+    }
+
     for (int i = 0; i < KURIER_COUNT; i++) {
         if (fork() == 0) {
-            kurier_process(&magazyn, shared_mem);
+            kurier_process(magazyn, shared_mem);
         }
     }
 
@@ -97,9 +149,15 @@ int main(int argc, char *argv[]) {
         wait(NULL);
     }
 
-    printf("Stan magazynu: A=%d, B=%d, C=%d\n", magazyn.A, magazyn.B, magazyn.C);
-    printf("Zarobione GLD: %d\n", magazyn.earnings);
+    printf("Stan magazynu: A=%d, B=%d, C=%d\n", magazyn->A, magazyn->B, magazyn->C);
+    printf("Zarobione GLD: %d\n", magazyn->earnings);
 
+    sem_close(sem_iteration);
+    sem_unlink("/sem_iteration");
+
+    munmap(magazyn, sizeof(Magazyn));  // Unmap shared memory
+    shm_unlink(SHM_NAME);              // Remove shared memory
     detach_memory_block(shared_mem);
+    
     return 0;
 }

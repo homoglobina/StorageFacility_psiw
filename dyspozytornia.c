@@ -67,10 +67,10 @@ int main(int argc, char *argv[]) {
     for (int i = 0; i < max_orders; i++) {
         printf("Czekamy na sygnal magazynowy %d\n", i);
         sem_wait(sem_m);  // czeka na sygnal magazynowy
-        printf("Dostarczono  sygnal magazynowy %d\n", i);
+        printf("Dostarczono sygnal magazynowy %d\n", i);
         
         
-        GLD =+ arr[0];
+        GLD += arr[0];
 
         arr[0] = rand() % max_A + 1;
         arr[1] = rand() % max_B + 1;
@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
 
         printf("Przekazywanie zamowienia %d: %d %d %d\n", i, arr[0], arr[1], arr[2]);
 
+        memset(block, 0, BLOCK_SIZE);
         memcpy(block, arr, sizeof(int)*3);
 
         sem_post(sem_d);  // przesylamy sygnal z dyspozytorni o przekazaniu zamowienia
