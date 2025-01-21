@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/stat.h>   
-#include <sys/mman.h>   
+#include <sys/stat.h>   // Needed for ftruncate()
+#include <sys/mman.h>   // Needed for shm_open() and mmap()
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
@@ -28,7 +28,6 @@ typedef struct {
 void kurier_process(Magazyn *magazyn, char *shared_mem) {
     int pid = getpid() % 3;
 
-    // printf("Magazyn %d przed odbiorem zamowienia: %d %d %d\n", pid, magazyn->A, magazyn->B, magazyn->C);
     
     sem_t *sem_m = sem_open(SEM_M_NAME, 0);
     if (sem_m == SEM_FAILED) {
@@ -53,12 +52,12 @@ void kurier_process(Magazyn *magazyn, char *shared_mem) {
     while (1) {
 
         // problemy w magazynach
-        // printf("Kurier %d czeka na swoja kolej\n", pid);
+        printf("Kurier %d czeka na swoja kolej\n", pid);
         sem_wait(sem_iteration);  // Lock shared memory access
        
 
        // problemy pomiedzy magazymami
-        // printf("Kurier %d czeka na zamowienie\n", pid);
+        printf("Kurier %d czeka na zamowienie\n", pid);
         sem_wait(sem_d);
 
 
@@ -100,7 +99,6 @@ int main(int argc, char *argv[]) {
         perror("shm_open");
         return 1;
     }
-    
     ftruncate(shm_fd, sizeof(Magazyn));  // Set size of shared memory
 
     Magazyn *magazyn = mmap(NULL, sizeof(Magazyn), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
@@ -131,6 +129,8 @@ int main(int argc, char *argv[]) {
         perror("sem_open/sem_iteration");
         return 1;
     }
+
+    printf("Magazyn  przed odbiorem zamowienia: %d %d %d\n", magazyn->A, magazyn->B, magazyn->C);
 
     for (int i = 0; i < KURIER_COUNT; i++) {
         if (fork() == 0) {
