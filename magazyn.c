@@ -28,14 +28,12 @@ typedef struct {
 void kurier_process(Magazyn *magazyn, char *shared_mem) {
     int pid = getpid() % 3;
 
-    
     sem_t *sem_m = sem_open(SEM_M_NAME, 0);
     if (sem_m == SEM_FAILED) {
         perror("sem_open/sem_m");
         exit(1);
     }
     
-
     sem_t *sem_d = sem_open(SEM_D_NAME, 0);
     if (sem_d == SEM_FAILED) {
         perror("sem_open/sem_D");
@@ -75,8 +73,6 @@ void kurier_process(Magazyn *magazyn, char *shared_mem) {
             exit(0);
         }
 
-
-
         if (magazyn->A >= order[0] && magazyn->B >= order[1] && magazyn->C >= order[2]) {
             int cost = order[0] * magazyn->cost_A + order[1] * magazyn->cost_B + order[2] * magazyn->cost_C;
             magazyn->A -= order[0];
@@ -87,7 +83,8 @@ void kurier_process(Magazyn *magazyn, char *shared_mem) {
             order[0] = cost;
             memcpy(shared_mem, order, sizeof(int) * 3);
             sem_post(sem_m);
-        } else {
+        }
+        else {
             printf("Brak surowcow, kurier %d sie wylacza.\n", pid);
             sem_post(sem_iteration);  // Release before exiting
             sem_post(sem_m);
@@ -104,13 +101,13 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Open shared memory for Magazyn struct
+    // pamiec wspoldzielona dla magazynu struct
     int shm_fd = shm_open(SHM_NAME, O_CREAT | O_RDWR, 0666);
     if (shm_fd == -1) {
         perror("shm_open");
         return 1;
     }
-    ftruncate(shm_fd, sizeof(Magazyn));  // Set size of shared memory
+    ftruncate(shm_fd, sizeof(Magazyn));  
 
     Magazyn *magazyn = mmap(NULL, sizeof(Magazyn), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (magazyn == MAP_FAILED) {
@@ -118,7 +115,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // Initialize magazyn from config file
+    // wczytaj dane do magazyn
     FILE *file = fopen(argv[1], "r");
     if (!file) {
         perror("fopen");
@@ -127,12 +124,13 @@ int main(int argc, char *argv[]) {
     fscanf(file, "%d %d %d %d %d %d", &magazyn->A, &magazyn->B, &magazyn->C, &magazyn->cost_A, &magazyn->cost_B, &magazyn->cost_C);
     fclose(file);
 
-    // Attach shared memory for orders
+    // pamiec wspoldzielona dla magazynu
     char *shared_mem = attach_memory_block(argv[2], BLOCK_SIZE);
     if (!shared_mem) {
         perror("attach_memory_block");
         return 1;
     }
+
 
     sem_unlink("/sem_iteration");  // Usunięcie starego semafora, jeśli istnieje
     sem_t *sem_iteration = sem_open("/sem_iteration", O_CREAT | O_EXCL, 0666, 1);
@@ -141,7 +139,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    printf("Magazyn  przed odbiorem zamowienia: %d %d %d\n", magazyn->A, magazyn->B, magazyn->C);
+
+    printf("Magazyn  przed odbiorem zamowien: %d %d %d\n", magazyn->A, magazyn->B, magazyn->C);
 
     for (int i = 0; i < KURIER_COUNT; i++) {
         if (fork() == 0) {

@@ -11,7 +11,7 @@
 int main(int argc, char *argv[]) {
 
     if (argc != 6) {
-        printf("Niepoprawna liczba argumentow\n"); // Incorrect number of arguments
+        printf("Niepoprawna liczba argumentow\n"); /
         printf("Usage %s <klucz> <liczba zamowien> <max_A_per_zam> <max_B_per_zam> <max_C_per_zam>\n", argv[0]);
         return 1;
     }
