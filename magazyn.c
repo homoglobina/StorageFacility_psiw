@@ -113,6 +113,19 @@ int main(int argc, char *argv[]) {
     }
     ftruncate(shm_fd, sizeof(Magazyn));  
 
+
+    char shm_name[50];
+    char sem_m_name[50];
+    char sem_d_name[50];
+
+    sprintf(shm_name, "/shm_magazyn_%s", argv[2]);  // Unique shared memory
+    sprintf(sem_m_name, "/semM_%s", argv[2]);       // Unique semaphore
+    sprintf(sem_d_name, "/semD_%s", argv[2]);       // Unique semaphore
+
+
+
+
+
     Magazyn *magazyn = mmap(NULL, sizeof(Magazyn), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
     if (magazyn == MAP_FAILED) {
         perror("mmap");
