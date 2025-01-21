@@ -11,7 +11,6 @@ bool destroy_memory_block(char *filename);
 
 #define SEM_A_NAME "/semaphoreA"
 #define SEM_C_NAME "/semaphoreC"
-#define FILENAME "shared_memory"
 #define BLOCK_SIZE 1024
 
 

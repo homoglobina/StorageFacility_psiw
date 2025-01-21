@@ -4,16 +4,34 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
+#include <stdlib.h>
 
 
 int main(int argc, char *argv[]) {
 
-    if (argc != 2) {
+    if (argc != 6) {
         printf("Niepoprawna liczba argumentow\n"); // Incorrect number of arguments
+        printf("Usage %s <klucz> <liczba zamowien> <max_A_per_zam> <max_B_per_zam> <max_C_per_zam>\n", argv[0]);
         return 1;
     }
+    
+    const char *key = argv[1];
+    int max_orders = atoi(argv[2]);
+    int max_A = atoi(argv[3]);
+    int max_B = atoi(argv[4]);
+    int max_C = atoi(argv[5]);
 
-    // setting up semaphores
+    for (int i = 0; i < max_orders; i++) {
+        int order_A = rand() % max_A + 1;
+        int order_B = rand() % max_B + 1;
+        int order_C = rand() % max_C + 1;
+
+        printf("Zamowienie %d: %d %d %d\n", i, order_A, order_B, order_C);
+    }
+
+
+
 
     sem_unlink(SEM_A_NAME);
     sem_unlink(SEM_C_NAME);
@@ -31,8 +49,11 @@ int main(int argc, char *argv[]) {
     }
 
 
-    // setting up shared memory
-    char *block = attach_memory_block(FILENAME, BLOCK_SIZE);
+    
+
+    // pamiec wspoldzielona
+    
+    char *block = attach_memory_block(key, BLOCK_SIZE);
     if (block == NULL) {
         perror("attach_memory_block");
         return 1;
