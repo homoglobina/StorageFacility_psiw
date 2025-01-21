@@ -62,13 +62,21 @@ int main(int argc, char *argv[]) {
     int GLD = 0;
 
 
-    printf("Dyspozytornia przygotowuje zamowienia\n");
 
     for (int i = 0; i < max_orders; i++) {
         
+        printf("Dyspozytornia przygotowuje zamowienia\n");
+        printf("Zalacz magazyny then ENTER\n");
+        scanf("%d", &arr[0]);
+
+        
         printf("Czekamy na sygnal magazynowy %d\n", i);
+        
+        
         sem_wait(sem_m);  // czeka na sygnal magazynowy
         
+
+
         memcpy(arr, block, sizeof(int) * 3); 
         printf("Dostarczono sygnal magazynowy %d\n", i);
         printf("dodoaje do GLD = %d : %d\n",GLD, arr[0]);

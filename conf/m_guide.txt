@@ -1,3 +1,2 @@
-n*A
-n*B
-n*C
+amount_of_A amount_of_B amount_of_C
+cost_of_A cost_of_B cost_of_C

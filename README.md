@@ -15,6 +15,7 @@ To start simulation
 
  - MAKE SURE THAT BOTH <klucz>s are the same
 
+ - conf files are supposed to be formated like in the m_guide.txt
 EXAMPLE 
 make
 ./dyspozytornia klucz 30 10 10 10 

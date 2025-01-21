@@ -122,7 +122,7 @@ int main(int argc, char *argv[]) {
     // wczytaj dane do magazyn
     FILE *file = fopen(argv[1], "r");
     if (!file) {
-        perror("fopen");
+        perror("There is no such configuration file");
         return 1;
     }
     fscanf(file, "%d %d %d %d %d %d", &magazyn->A, &magazyn->B, &magazyn->C, &magazyn->cost_A, &magazyn->cost_B, &magazyn->cost_C);

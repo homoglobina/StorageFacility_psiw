@@ -14,7 +14,7 @@ static int get_shared_block(const char *filename, int size) {
     key = ftok(filename,0);
     
     if (key == -1) {
-        perror("ftok");
+        perror("Not matching key has been provided");
         return -1;
     }
 
