@@ -15,66 +15,81 @@ int main(int argc, char *argv[]) {
         printf("Usage %s <klucz> <liczba zamowien> <max_A_per_zam> <max_B_per_zam> <max_C_per_zam>\n", argv[0]);
         return 1;
     }
-    
+
+    // zmienne
     const char *key = argv[1];
     int max_orders = atoi(argv[2]);
     int max_A = atoi(argv[3]);
     int max_B = atoi(argv[4]);
     int max_C = atoi(argv[5]);
 
-    for (int i = 0; i < max_orders; i++) {
-        int order_A = rand() % max_A + 1;
-        int order_B = rand() % max_B + 1;
-        int order_C = rand() % max_C + 1;
 
-        printf("Zamowienie %d: %d %d %d\n", i, order_A, order_B, order_C);
+    // Sprawdzenie i utworzenie pliku klucz, jeśli nie istnieje
+    FILE *key_file = fopen(key, "a");
+    if (!key_file) {
+        perror("Nie można utworzyć pliku klucz\n"); // Cannot create file 
+        return 1;
     }
+    fclose(key_file);
 
 
+    // przygotowanie semaforow , dyspozytorania musi byc pierwsza odpalona
+    sem_unlink(SEM_D_NAME);
+    sem_unlink(SEM_M_NAME);
 
-
-    sem_unlink(SEM_A_NAME);
-    sem_unlink(SEM_C_NAME);
-
-    sem_t *sem_a = sem_open(SEM_A_NAME, O_CREAT, 0666, 1);
-    if (sem_a == SEM_FAILED) {
-        perror("sem_open/sem_a");
+    sem_t *sem_d = sem_open(SEM_D_NAME, O_CREAT, 0666, 0);
+    if (sem_d == SEM_FAILED) {
+        perror("sem_open/sem_D");
         return 1;
     }
 
-    sem_t *sem_c = sem_open(SEM_C_NAME, O_CREAT, 0666, 0);
-    if (sem_c == SEM_FAILED) {
-        perror("sem_open/sem_c");
+    sem_t *sem_m = sem_open(SEM_M_NAME, O_CREAT, 0666, 1);
+    if (sem_m == SEM_FAILED) {
+        perror("sem_open/sem_M");
         return 1;
     }
 
-
-    
-
-    // pamiec wspoldzielona
-    
+    // przygotowanie pamiecie wspoldzielonej w ktorej zapisywane beda zamowienia
     char *block = attach_memory_block(key, BLOCK_SIZE);
     if (block == NULL) {
         perror("attach_memory_block");
         return 1;
     }
 
-    while (true){
-        sem_wait(sem_c);
-        if (strlen(block) > 0){
-            printf("Odczytano: %s\n", block);
-            bool done = (strcmp(block, "quit") == 0);
-            block[0] = 0;
-            if (done) {break;}
-        }
-        sem_post(sem_a);
+
+
+    int arr[3];
+    int GLD = 0;
+
+
+    printf("Dyspozytornia przygotowuje zamowienia\n");
+
+    for (int i = 0; i < max_orders; i++) {
+        printf("Czekamy na sygnal magazynowy %d\n", i);
+        sem_wait(sem_m);  // czeka na sygnal magazynowy
+        printf("Dostarczono  sygnal magazynowy %d\n", i);
+        
+        
+        GLD =+ arr[0];
+
+        arr[0] = rand() % max_A + 1;
+        arr[1] = rand() % max_B + 1;
+        arr[2] = rand() % max_C + 1;
+
+        printf("Przekazywanie zamowienia %d: %d %d %d\n", i, arr[0], arr[1], arr[2]);
+
+        memcpy(block, arr, sizeof(int)*3);
+
+        sem_post(sem_d);  // przesylamy sygnal z dyspozytorni o przekazaniu zamowienia
+
     }
 
-    sem_close(sem_a);
-    sem_close(sem_c);
+    sem_close(sem_d);
+    sem_close(sem_m);
 
     detach_memory_block(block);
 
+    printf("Dyspozytornia zaplacila lacznie: %d", GLD);
 
     return 0;
 }

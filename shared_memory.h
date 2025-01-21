@@ -9,8 +9,8 @@ bool detach_memory_block(char *block);
 bool destroy_memory_block(char *filename);
 
 
-#define SEM_A_NAME "/semaphoreA"
-#define SEM_C_NAME "/semaphoreC"
+#define SEM_D_NAME "/semD"
+#define SEM_M_NAME "/semM"
 #define BLOCK_SIZE 1024
 
 
